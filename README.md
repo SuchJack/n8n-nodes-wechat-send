@@ -1,48 +1,447 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# Msh AI微信插件使用指南
 
-# n8n-nodes-starter
+> 🎯 让你的 N8N 工作流轻松发送微信消息！
 
-This repo contains example nodes to help you get started building your own custom integrations for [n8n](https://n8n.io). It includes the node linter and other dependencies.
+---
 
-To make your custom node available to the community, you must create it as an npm package, and [submit it to the npm registry](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+## 📋 目录
 
-If you would like your node to be available on n8n cloud you can also [submit your node for verification](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/).
+- [功能选择](#-功能选择)
+- [企业微信使用教程](#-企业微信使用教程)
+- [个人微信使用教程](#-个人微信使用教程)
+- [常见使用场景](#-常见使用场景)
+- [常见问题解答](#-常见问题解答)
 
-## Prerequisites
+---
 
-You need the following installed on your development machine:
+## 🎯 功能选择
 
-* [git](https://git-scm.com/downloads)
-* Node.js and npm. Minimum version Node 20. You can find instructions on how to install both using nvm (Node Version Manager) for Linux, Mac, and WSL [here](https://github.com/nvm-sh/nvm). For Windows users, refer to Microsoft's guide to [Install NodeJS on Windows](https://docs.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows).
-* Install n8n with:
-  ```
-  npm install n8n -g
-  ```
-* Recommended: follow n8n's guide to [set up your development environment](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/).
+### 我应该选择哪种模式？
 
-## Using this starter
+| 对比项 | 🏢 企业微信机器人 | 🙋‍♂️ 个人微信自动化 |
+|--------|------------------|-------------------|
+| **部署难度** | ⭐ 超简单（无需部署） | ⭐⭐⭐ 需要 Windows 服务 |
+| **发送范围** | 仅企业微信群 | 任何联系人/群聊 |
+| **消息类型** | 文本、Markdown、图文 | 文本、图片、视频、文件 |
+| **文件发送** | ❌ 不支持 | ✅ 完整支持 |
+| **推荐场景** | 团队通知、工作提醒 | 客户服务、个人自动化 |
 
-These are the basic steps for working with the starter. For detailed guidance on creating and publishing nodes, refer to the [documentation](https://docs.n8n.io/integrations/creating-nodes/).
+**💡 快速选择建议：**
+- ✅ 只需要发送到企业微信工作群 → 选择**企业微信机器人**
+- ✅ 需要发送给个人联系人或微信群 → 选择**个人微信自动化**
+- ✅ 需要发送文件/图片/视频 → 选择**个人微信自动化**
 
-1. [Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template repository.
-2. Clone your new repo:
+---
+
+## 🏢 企业微信使用教程
+
+### 第一步：安装插件（30秒）
+
+1. 打开 N8N 界面
+2. 点击右上角 **设置（⚙️）** → **社区节点**
+3. 点击 **安装社区节点**
+4. 输入：`n8n-nodes-wechat-send`
+5. 点击 **安装**，等待完成
+
+### 第二步：输入 API Key（30秒）
+
+1. 复制 API 密钥（形如：`https://mshwl.com`）
+
+### 第三步：获取企业微信 Webhook（1分钟）
+
+1. 打开企业微信 PC 端或 App
+2. 进入需要发送消息的**企业微信群**
+3. 点击群右上角 **···** → **群设置**
+4. 选择 **群机器人** → **添加机器人**
+5. 设置机器人名称（如：N8N通知助手）
+6. 复制生成的 **Webhook 地址**（以 `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=` 开头）
+
+### 第四步：配置 N8N 凭据（1分钟）
+
+1. N8N 左侧菜单 → **凭据**
+2. 点击 **新建凭据** → 搜索 **Msh AI微信插件 API**
+3. 填写配置：
+   - **API Key**：粘贴第二步获取的密钥
+   - **个人微信服务地址**：保持默认即可（企业微信不需要）
+4. 点击 **保存**
+
+### 第五步：创建工作流（2分钟）
+
+1. 新建或打开一个工作流
+2. 添加节点 → 搜索 **WeChat Send**
+3. 配置节点：
+   - **微信服务类型**：选择 **🏢 企业微信机器人**
+   - **企业微信Webhook地址**：粘贴第三步的 Webhook 地址
+   - **消息类型**：选择你需要的类型（文本/Markdown/图文等）
+   - **消息内容**：输入要发送的内容
+
+### 📝 示例配置
+
+#### 发送文本消息
+```
+微信服务类型: 🏢 企业微信机器人
+企业微信Webhook地址: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=你的key
+消息类型: 💬 文本消息
+消息内容: 系统提醒：服务器 CPU 使用率达到 85%
+```
+
+#### 发送 Markdown 消息
+```
+微信服务类型: 🏢 企业微信机器人
+企业微信Webhook地址: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=你的key
+消息类型: 📝 Markdown消息
+Markdown内容:
+## 📊 每日数据报告
+**日期**: 2024-01-15
+**订单数**: 128
+**营业额**: ¥15,680
+
+[查看详细报表](https://example.com/report)
+```
+
+### ✅ 测试发送
+
+1. 点击节点右上角 **执行节点**
+2. 查看企业微信群，确认收到消息
+3. 如果失败，检查 Webhook 地址是否正确
+
+---
+
+## 🙋‍♂️ 个人微信使用教程
+
+### 准备工作
+
+**⚠️ 系统要求：**
+- ✅ Windows 10+ 或 Windows Server 2016+
+- ✅ 微信 PC 版 3.9.8 - 3.9.12（**不支持 4.0 版本**）
+- ✅ Python 3.9-3.12（会自动安装）
+- ✅ Node.js 16+（会自动安装）
+
+**📥 微信版本下载：**
+- [微信官网](https://pc.weixin.qq.com/?lang=zh_CN)
+- [百度网盘 v3.9.12](https://pan.baidu.com/s/1j2p3NTdjSexbQVPQD3Wopg) 提取码: d7j4
+
+### 第一步：安装 N8N 插件（30秒）
+
+同企业微信第一步
+
+### 第二步：获取 API Key（30秒）
+
+同企业微信第二步
+
+### 第三步：下载个人微信服务（1分钟）
+
+1. 访问：https://github.com/SuchJack/n8n-nodes-wechat-send
+2. 点击绿色 **Code** 按钮 → **Download ZIP**
+3. 解压到 Windows 电脑任意位置（如：`D:\wechat-service`）
+
+### 第四步：启动个人微信服务（2分钟）
+
+1. 打开解压后的文件夹
+2. 进入 `personal-wechat-service` 目录
+3. **双击运行**：`一键启动.bat`
+4. 等待自动检测和安装依赖（首次运行约 2-5 分钟）
+5. 看到以下提示表示成功：
+
+```
+🚀 西羊石AI个人微信自动化服务已启动
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 服务地址: http://localhost:3000
+✅ 服务运行正常，等待N8N连接...
+```
+
+**💡 提示：**
+- 首次启动会自动安装 Python 依赖（wxauto、requests）
+- 服务窗口保持开启状态，不要关闭
+- 确保微信 PC 客户端已登录
+
+### 第五步：配置 N8N 凭据（1分钟）
+
+1. N8N 左侧菜单 → **凭据**
+2. 点击 **新建凭据** → 搜索 **Msh AI微信插件 API**
+3. 填写配置：
+   - **API Key**：粘贴第二步获取的密钥
+   - **个人微信服务地址**：
+     - 本地 N8N：`http://localhost:3000`
+     - Docker N8N：`http://host.docker.internal:3000`
+     - 云端 N8N：见下方"云端部署"说明
+4. 点击 **测试连接**，确认成功
+5. 点击 **保存**
+
+### 第六步：创建工作流（2分钟）
+
+1. 新建或打开一个工作流
+2. 添加节点 → 搜索 **WeChat Send**
+3. 配置节点：
+   - **微信服务类型**：选择 **🙋‍♂️ 个人微信自动化**
+   - **消息类型**：选择你需要的类型
+   - **发送目标**：选择发送到文件传输助手/联系人/群聊
+   - **消息内容**：输入要发送的内容
+
+### 📝 示例配置
+
+#### 发送文本到文件传输助手
+```
+微信服务类型: 🙋‍♂️ 个人微信自动化
+消息类型: 💬 文本消息
+发送目标: 📁 文件传输助手
+Message Text: 测试消息：N8N 工作流运行成功！
+```
+
+#### 发送文本给联系人
+```
+微信服务类型: 🙋‍♂️ 个人微信自动化
+消息类型: 💬 文本消息
+发送目标: 👤 联系人
+联系人/群名称: 张三
+Message Text: 你好张三，这是来自 N8N 的自动消息
+```
+
+#### 批量发送给多个联系人
+```
+微信服务类型: 🙋‍♂️ 个人微信自动化
+消息类型: 💬 文本消息
+发送目标: 👤 联系人
+联系人/群名称: 张三,李四,王五
+Batch Options:
+  - 发送间隔(秒): 5
+  - 随机延迟: ✅ 开启
+Message Text: 新年快乐！祝大家新年工作顺利！
+```
+
+#### 发送图片（URL方式）
+```
+微信服务类型: 🙋‍♂️ 个人微信自动化
+消息类型: 🖼️ 图片消息
+发送目标: 📁 文件传输助手
+File Input Method: 🔗 URL地址
+File URL: https://example.com/image.jpg
+Additional Options:
+  - Caption/Description: 这是一张测试图片
+```
+
+#### 发送文件（上传方式）
+```
+微信服务类型: 🙋‍♂️ 个人微信自动化
+消息类型: 📎 文件消息
+发送目标: 👤 联系人
+联系人/群名称: 张三
+File Input Method: 📎 上传文件
+Input Binary Field: data (从上游节点获取)
+File Name: 报告.pdf
+Additional Options:
+  - Caption/Description: 这是本月的销售报告
+```
+
+### 🌐 云端 N8N 部署说明
+
+如果你的 N8N 部署在云服务器上，需要使用内网穿透工具将本地 3000 端口暴露到公网。
+
+#### 方案一：ngrok（推荐新手）
+
+1. 下载 ngrok：https://ngrok.com/download
+2. 解压并运行：
+   ```bash
+   ngrok http 3000
    ```
-   git clone https://github.com/<your organization>/<your-repo-name>.git
+3. 复制生成的 URL（如：`https://abc123.ngrok-free.app`）
+4. 在 N8N 凭据中填入该地址
+
+#### 方案二：Cloudflare Tunnel（推荐长期使用）
+
+1. 安装 cloudflared：https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+2. 运行隧道：
+   ```bash
+   cloudflared tunnel --url http://localhost:3000
    ```
-3. Run `npm i` to install dependencies.
-4. Open the project in your editor.
-5. Browse the examples in `/nodes` and `/credentials`. Modify the examples, or replace them with your own nodes.
-6. Update the `package.json` to match your details.
-7. Run `npm run lint` to check for errors or `npm run lintfix` to automatically fix errors when possible.
-8. Test your node locally. Refer to [Run your node locally](https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/) for guidance.
-9. Replace this README with documentation for your node. Use the [README_TEMPLATE](README_TEMPLATE.md) to get started.
-10. Update the LICENSE file to use your details.
-11. [Publish](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry) your package to npm.
+3. 使用生成的临时域名或配置永久域名
 
-## More information
+#### 方案三：frp（推荐技术用户）
 
-Refer to our [documentation on creating nodes](https://docs.n8n.io/integrations/creating-nodes/) for detailed information on building your own nodes.
+1. 需要有公网服务器
+2. 下载 frp：https://github.com/fatedier/frp/releases
+3. 配置客户端连接到服务器
+4. 使用自定义域名
 
-## License
+---
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+## 🎬 常见使用场景
+
+### 场景1：系统监控告警
+
+**需求**：服务器 CPU 超过 80% 时发送微信告警
+
+**工作流设计**：
+```
+[定时触发] → [HTTP请求-监控API] → [IF判断CPU>80%] → [WeChat Send]
+```
+
+**配置示例**：
+- 触发器：每 5 分钟执行一次
+- 消息内容：`⚠️ 告警：服务器CPU使用率 {{$json.cpu}}%，请及时处理！`
+
+### 场景2：每日数据报告
+
+**需求**：每天早上 9 点发送昨日数据统计到工作群
+
+**工作流设计**：
+```
+[定时触发-每天9:00] → [数据库查询] → [数据格式化] → [WeChat Send-Markdown]
+```
+
+**配置示例**：
+- 消息类型：Markdown 消息
+- 发送目标：运营工作群
+- 内容：包含订单数、销售额、用户增长等关键指标
+
+### 场景3：客户服务自动回复
+
+**需求**：收到客户消息后自动发送接收确认
+
+**工作流设计**：
+```
+[Webhook触发] → [数据处理] → [WeChat Send]
+```
+
+**配置示例**：
+- 发送目标：客户联系人
+- 消息内容：`您的消息已收到，客服将在 30 分钟内回复您，感谢您的耐心等待！`
+
+### 场景4：文件自动分发
+
+**需求**：每周五下午发送周报 PDF 给团队成员
+
+**工作流设计**：
+```
+[定时触发-周五17:00] → [生成PDF] → [WeChat Send-批量发送]
+```
+
+**配置示例**：
+- 消息类型：文件消息
+- 发送目标：多个联系人
+- 联系人列表：`张三,李四,王五,赵六`
+- 批量选项：间隔 5 秒，开启随机延迟
+
+---
+
+## ❓ 常见问题解答
+
+### 安装相关
+
+**Q: 插件安装失败怎么办？**
+
+A: 尝试以下步骤：
+1. 重启 N8N 后重新安装
+2. 检查 N8N 版本是否 >= 0.160.0
+3. 查看 N8N 日志中的具体错误信息
+4. 确保有网络连接可以访问 npm
+
+**Q: 凭据测试连接失败？**
+
+A: 
+- 企业微信：无需测试连接，直接保存即可
+- 个人微信：
+  1. 确认个人微信服务已启动（窗口未关闭）
+  2. 检查服务地址是否正确（localhost/host.docker.internal）
+  3. 检查防火墙是否拦截 3000 端口
+  4. 在浏览器访问 `http://localhost:3000/health` 测试
+
+### 个人微信相关
+
+**Q: 一键启动脚本运行后立即关闭？**
+
+A: 
+1. 右键 `一键启动.bat` → **以管理员身份运行**
+2. 检查是否缺少 Python 或 Node.js 环境
+3. 查看错误提示，按提示安装缺失的依赖
+
+**Q: 提示"wxauto库未安装"？**
+
+A: 打开命令提示符（CMD），运行：
+```bash
+pip install wxauto requests
+```
+
+**Q: 提示"微信客户端连接失败"？**
+
+A: 
+1. 确保微信 PC 客户端已启动
+2. 确保已登录微信账号
+3. 使用兼容版本（3.9.8-3.9.12）
+4. 重启微信客户端后重试
+
+**Q: 发送消息提示"联系人不存在"？**
+
+A: 
+1. 检查联系人名称是否完全匹配（区分大小写）
+2. 确保该联系人在微信通讯录中
+3. 尝试先在微信中手动搜索该联系人，确认名称
+
+**Q: 批量发送时部分失败？**
+
+A: 
+1. 增加发送间隔时间（建议 5-10 秒）
+2. 开启随机延迟
+3. 检查失败的联系人名称是否正确
+4. 避免短时间内发送过多消息
+
+**Q: 文件发送失败？**
+
+A: 
+1. 检查文件 URL 是否可访问
+2. 文件大小不要超过 100MB
+3. 确保文件格式被微信支持
+4. 如果是二进制数据，确认 Binary Field 名称正确
+
+### 企业微信相关
+
+**Q: 企业微信发送失败？**
+
+A: 
+1. 检查 Webhook 地址是否完整（包含 key 参数）
+2. 在企业微信中重新生成机器人并获取新 Webhook
+3. 检查消息内容是否符合格式要求
+4. 查看 N8N 节点的错误提示
+
+**Q: Markdown 格式不生效？**
+
+A: 
+1. 确保选择了"Markdown消息"类型
+2. 检查 Markdown 语法是否正确
+3. 企业微信支持的 Markdown 语法有限，参考官方文档
+
+### 性能相关
+
+**Q: 可以同时发送给多少人？**
+
+A: 
+- 个人微信：建议每次不超过 20 人，设置适当间隔
+- 企业微信：单个机器人每分钟最多 20 条消息
+
+**Q: 发送速度慢怎么办？**
+
+A: 
+- 个人微信：减少发送间隔（但注意防封号）
+- 文件发送：确保网络速度良好
+- URL 下载：使用国内 CDN 加速
+
+**Q: 会不会被封号？**
+
+A: 
+- 个人微信：避免短时间大量发送，使用随机延迟
+- 推荐间隔：单个联系人间隔 3-5 秒
+- 每天发送总量建议不超过 100 条
+- 企业微信：无封号风险
+
+---
+
+<div align="center">
+
+**⭐ 觉得好用？给个 Star 支持一下！**
+
+**🌟 让你的 N8N 工作流更智能！**
+
+Made with ❤️ by Msh AI
+
+</div>
+

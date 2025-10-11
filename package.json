@@ -3,17 +3,24 @@
   "version": "1.0.28",
   "description": "",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "n8n-nodes",
+    "wechat",
+    "weixin",
+    "微信",
+    "企业微信",
+    "自动化",
+    "Msh AI"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://mshwl.com/",
   "author": {
-    "name": "",
+    "name": "SuchJack",
     "email": ""
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/SuchJack/n8n-nodes-wechat-send.git"
   },
   "engines": {
     "node": ">=20.15"

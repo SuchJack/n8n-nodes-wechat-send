@@ -11,6 +11,7 @@ export class WeixinWechatSend implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'WeChat Send (Msh AI)',
 		name: 'weixinWechatSend',
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
 		icon: 'file:wechat.png',
 		group: ['transform'],
 		version: 1,
@@ -399,7 +400,7 @@ export class WeixinWechatSend implements INodeType {
 				},
 				description: 'Text content to send',
 			},
-			
+
 			// 文件输入方式选择
 			{
 				displayName: 'File Input Method',
