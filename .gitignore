@@ -1,9 +1,26 @@
+# 依赖
 node_modules
-.DS_Store
-.tmp
-tmp
-dist
 npm-debug.log*
 yarn.lock
+
+# 环境变量配置文件（包含敏感信息）
+.env
+.env.local
+.env.*.local
+.env.backup
+
+# 构建输出
+dist
+
+# 临时文件
+.tmp
+tmp
+*.tmp
+
+# IDE
 .vscode/launch.json
 .idea
+
+# 操作系统
+.DS_Store
+Thumbs.db

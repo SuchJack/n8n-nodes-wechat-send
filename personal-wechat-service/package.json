@@ -1,18 +1,20 @@
 {
   "name": "wechat-personal-service",
-  "version": "1.0.0",
-  "description": "个人微信自动化服务 - Msh AI",
+  "version": "1.0.1",
+  "description": "个人微信自动化服务 - 为 n8n 提供个人微信发送功能",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "setup": "node setup-wizard.js"
   },
-  "author": "Msh AI (mshwl.com)",
+  "author": "SuchJack",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "axios": "^1.6.0",
+    "dotenv": "^16.4.5",
     "child_process": "*"
   },
   "engines": {

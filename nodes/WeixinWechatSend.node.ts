@@ -15,16 +15,22 @@ export class WeixinWechatSend implements INodeType {
 		icon: 'file:wechat.png',
 		group: ['transform'],
 		version: 1,
-		description: 'Msh AI微信插件 - 企业微信机器人、个人微信自动化 | 关注公众号"xxx"获取API',
+		description: 'Msh微信插件 - 支持个人微信和企业微信消息发送',
 		defaults: {
 			name: 'WeChat Send',
 		},
 		inputs: ['main'],
 		outputs: ['main'],
+		// 关键改造：credentials 改为可选，仅个人微信时需要
 		credentials: [
 			{
 				name: 'weixinWechatApi',
-				required: true,
+				required: false,  // 改为可选
+				displayOptions: {
+					show: {
+						service: ['personal-wechat'],  // 仅个人微信时显示
+					},
+				},
 			},
 		],
 		properties: [
@@ -32,20 +38,35 @@ export class WeixinWechatSend implements INodeType {
 				displayName: '微信服务类型',
 				name: 'service',
 				type: 'options',
-				default: 'personal-wechat',
+				default: 'enterprise-wechat-bot',  // 改为企业微信默认（更简单）
 				options: [
 					{
-						name: '🙋‍♂️ 个人微信自动化 (推荐)',
-						value: 'personal-wechat',
-						description: '真实微信控制，功能全面！支持联系人/群聊/文件发送，使用面广',
+						name: '🏢 企业微信机器人 (推荐新手)',
+						value: 'enterprise-wechat-bot',
+						description: '无需额外部署，配置 Webhook 即可使用，简单快捷',
 					},
 					{
-						name: '🏢 企业微信机器人',
-						value: 'enterprise-wechat-bot',
-						description: '简单易用，发送到企业微信群，无需额外部署',
+						name: '🙋‍♂️ 个人微信自动化',
+						value: 'personal-wechat',
+						description: '功能全面，支持联系人/群聊/文件发送，需要部署服务',
 					},
 				],
-				description: '💡 个人微信功能更全面！🔑 必须先获取API：关注公众号"Msh AI视频"→发送"API"<br/>🏢 企业微信用户可直接使用，无需API Key',
+			},
+			// 新增：企业微信提示（无需凭据）
+			{
+				displayName: '✅ 无需凭据配置',
+				name: 'enterpriseWechatNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						service: ['enterprise-wechat-bot'],
+					},
+				},
+				typeOptions: {
+					theme: 'success',
+				},
+				description: '🏢 <b>企业微信机器人无需额外配置</b><br/><br/>只需在下方填入企业微信群机器人的 Webhook 地址即可使用，无需部署服务或配置 API 凭据。<br/><br/>📝 获取 Webhook：群设置 → 群机器人 → 添加机器人 → 复制 Webhook 地址',
 			},
 			// 企业微信webhook配置
 			{
@@ -61,8 +82,9 @@ export class WeixinWechatSend implements INodeType {
 				description: '企业微信群机器人的Webhook地址 | 群设置 → 机器人 → 添加机器人',
 				required: true,
 			},
+			// 修改：个人微信提示（需要凭据）
 			{
-				displayName: '🚀 个人微信服务部署 (3分钟完成)',
+				displayName: '⚠️ 需要配置 API 凭据',
 				name: 'personalWechatNotice',
 				type: 'notice',
 				default: '',
@@ -70,9 +92,9 @@ export class WeixinWechatSend implements INodeType {
 					show: { service: ['personal-wechat'] }
 				},
 				typeOptions: {
-					theme: 'info',
+					theme: 'warning',
 				},
-				description: '🔑 <b>1. 获取API Key：</b>关注公众号"xxx" → 发送"API" → 复制密钥<br/>📦 <b>2. 下载服务：</b><a href="https://github.com/xxx/n8n-nodes-wechat-send" target="_blank">GitHub仓库</a> → personal-wechat-service目录<br/>🖱️ <b>3. Windows一键启动：</b>双击 一键启动.bat 即可 (自动安装依赖)<br/>🔌 <b>4. 配置地址：</b>本地 http://localhost:3000 | Docker: http://host.docker.internal:3000 | 云端: http://您的IP:3000',
+				description: '🔑 <b>个人微信服务需要配置 API 凭据</b><br/><br/>请在节点设置中选择 <b>"Credential to connect with"</b>（连接凭据），选择已配置的"个人微信服务 API"凭据。<br/><br/>📦 <b>部署步骤：</b><br/>1. 下载服务：<a href="https://github.com/your-repo/n8n-nodes-wechat-send" target="_blank">GitHub 仓库</a> → personal-wechat-service 目录<br/>2. 启动服务：运行会自动引导设置 API Key<br/>3. 配置凭据：将生成的 API Key 填入 n8n 凭据配置<br/><br/>💡 详细说明请查看 API_KEY_REFACTOR_GUIDE.md',
 			},
 			// 企业微信消息类型配置
 			{
@@ -660,6 +682,32 @@ export class WeixinWechatSend implements INodeType {
 						webhook_response: response
 					};
 				} else if (service === 'personal-wechat') {
+					// 个人微信处理：必须验证 credentials
+					let credentials;
+					try {
+						credentials = await this.getCredentials('weixinWechatApi');
+					} catch (error) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'❌ 个人微信服务需要配置 API 凭据！\n\n' +
+							'📝 配置步骤：\n' +
+							'1. 在节点设置中找到 "Credential to connect with"（连接凭据）\n' +
+							'2. 点击选择或创建 "个人微信服务 API" 凭据\n' +
+							'3. 填入你在个人微信服务中设置的 API Key\n' +
+							'4. 保存节点配置\n\n' +
+							'💡 详细说明请查看 API_KEY_REFACTOR_GUIDE.md',
+							{ itemIndex: i }
+						);
+					}
+
+					if (!credentials || !credentials.apiKey) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'❌ API Key 未配置或配置不完整\n\n请检查凭据设置，确保 API Key 已正确填写',
+							{ itemIndex: i }
+						);
+					}
+
 					// 个人微信处理
 					const resource = this.getNodeParameter('resource', i) as string;
 

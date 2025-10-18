@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Msh AI个人微信自动化服务
- * 运行在用户PC上，为N8N提供个人微信发送功能
- *
- * 官网: https//mshwl.com/
- * 作者: Msh AI团队
+ * 个人微信自动化服务
+ * 运行在用户PC上，为 n8n 提供个人微信发送功能
  */
 
 const express = require('express');
@@ -15,6 +12,9 @@ const fs = require('fs');
 const os = require('os');
 const { spawn, exec } = require('child_process');
 const { promisify } = require('util');
+const { checkAndRun } = require('./setup-wizard');
+
+require('dotenv').config();
 
 const execAsync = promisify(exec);
 
@@ -232,25 +232,38 @@ app.get('/status', async (req, res) => {
     }
 });
 
-// 🔒 API Key验证中间件 - 所有发送功能都需要验证
-app.use('/send/*', (req, res, next) => {
-    const apiKey = req.headers['x-api-key'];
+// ⭐ 创建 API Key 验证中间件（真实验证）
+function createAuthMiddleware(configuredApiKey) {
+    return (req, res, next) => {
+        const requestApiKey = req.headers['x-api-key'];
 
-    if (!apiKey || apiKey.trim() === '') {
-        log(`❌ 缺少API Key，拒绝请求: ${req.path}`);
-        return res.status(401).json({
-            success: false,
-            error: '需要API Key才能使用个人微信功能！',
-            help: '👉 获取方式：关注公众号"漠上鸿工作室"回复"API"获取密钥',
-            code: 'MISSING_API_KEY'
-        });
-    }
+        // 检查是否提供了 API Key
+        if (!requestApiKey || requestApiKey.trim() === '') {
+            log(`❌ 缺少 API Key，拒绝请求: ${req.path}`);
+            return res.status(401).json({
+                success: false,
+                error: 'Missing API Key',
+                message: '请在请求头中提供 x-api-key',
+                code: 'MISSING_API_KEY'
+            });
+        }
 
-    // TODO: 这里可以添加真正的API Key验证逻辑（调用Msh AI服务器验证）
-    // 目前只检查是否存在，确保用户必须获取API Key
-    log(`🔑 API Key验证通过: ${apiKey.substring(0, 8)}...`);
-    next();
-});
+        // ⭐ 真实验证：对比配置的 API Key
+        if (requestApiKey !== configuredApiKey) {
+            log(`❌ API Key 验证失败: ${requestApiKey.substring(0, 8)}...`);
+            return res.status(403).json({
+                success: false,
+                error: 'Invalid API Key',
+                message: 'API Key 不正确，请检查配置',
+                code: 'INVALID_API_KEY',
+                hint: '请确保 n8n 凭据中的 API Key 与服务配置一致'
+            });
+        }
+
+        log(`✅ API Key 验证通过`);
+        next();
+    };
+}
 
 // 发送文本消息
 app.post('/send/text', async (req, res) => {
@@ -318,23 +331,83 @@ app.post('/send/file', async (req, res) => {
     }
 });
 
-// 启动服务
-app.listen(PORT, '0.0.0.0', () => {
-    console.log('');
-    console.log('🚀 Msh AI个人微信自动化服务已启动');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`📡 服务地址: http://localhost:${PORT}`);
-    console.log(`🌐 外部访问: http://您的IP地址:${PORT}`);
-    console.log(`💚 健康检查: http://localhost:${PORT}/health`);
-    console.log(`📊 服务状态: http://localhost:${PORT}/status`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🔗 官网: https//mshwl.com/');
-    console.log('📞 技术支持: 关注公众号"漠上鸿工作室"');
-    console.log('');
-    console.log('✅ 服务运行正常，等待N8N连接...');
-    console.log('💡 在N8N中配置个人微信服务地址为上述地址');
-    console.log('');
-});
+// ⭐ 启动前检查和配置
+async function initializeService() {
+    // 检查是否需要运行首次配置向导
+    const ranWizard = await checkAndRun();
+
+    if (ranWizard) {
+        // 重新加载环境变量（向导刚生成的）
+        delete require.cache[require.resolve('dotenv')];
+        require('dotenv').config();
+    }
+
+    // 验证必要配置
+    const API_KEY = process.env.API_KEY;
+
+    if (!API_KEY || API_KEY === 'CHANGE-ME-TO-YOUR-SECRET-KEY') {
+        console.error('');
+        console.error('❌ 配置错误：API_KEY 未设置或使用默认值');
+        console.error('');
+        console.error('💡 解决方法：');
+        console.error('   1. 编辑 .env 文件，设置 API_KEY');
+        console.error('   2. 或删除 .env 文件，重新运行服务进入配置向导');
+        console.error('');
+        process.exit(1);
+    }
+
+    // 验证 API Key 强度
+    if (API_KEY.length < 16) {
+        console.warn('');
+        console.warn('⚠️  警告：API_KEY 长度较短，建议使用 32 位以上密钥');
+        console.warn('');
+    }
+
+    return {
+        apiKey: API_KEY,
+        port: parseInt(process.env.PORT) || 3000,
+        enableRateLimit: process.env.ENABLE_RATE_LIMIT !== 'false',
+        maxRequestsPerMinute: parseInt(process.env.MAX_REQUESTS_PER_MINUTE) || 60,
+        logLevel: process.env.LOG_LEVEL || 'info'
+    };
+}
+
+// ⭐ 主启动函数
+async function startServer() {
+    try {
+        // 初始化配置
+        const config = await initializeService();
+
+        // 应用认证中间件
+        app.use('/send/*', createAuthMiddleware(config.apiKey));
+
+        // 启动 HTTP 服务器
+        app.listen(config.port, '0.0.0.0', () => {
+            console.log('');
+            console.log('🚀 个人微信自动化服务已启动');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log(`📡 服务地址: http://localhost:${config.port}`);
+            console.log(`🌐 外部访问: http://您的IP地址:${config.port}`);
+            console.log(`💚 健康检查: http://localhost:${config.port}/health`);
+            console.log(`📊 服务状态: http://localhost:${config.port}/status`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log(`🔒 API Key: ${config.apiKey}`);
+            console.log(`🛡️  速率限制: ${config.enableRateLimit ? '已启用' : '已禁用'}`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('');
+            console.log('✅ 服务运行正常，等待 n8n 连接...');
+            console.log('💡 在 n8n 中配置个人微信服务地址和 API Key');
+            console.log('');
+        });
+
+    } catch (error) {
+        console.error('❌ 服务启动失败:', error.message);
+        process.exit(1);
+    }
+}
+
+// 启动应用
+startServer();
 
 // 优雅关闭
 process.on('SIGINT', () => {

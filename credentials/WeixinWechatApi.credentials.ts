@@ -7,8 +7,12 @@ import {
 
 export class WeixinWechatApi implements ICredentialType {
 	name = 'weixinWechatApi';
-	displayName = 'Msh AI微信插件 API';
-	documentationUrl = 'https://mshwl.com/';
+	displayName = '个人微信服务 API';
+	documentationUrl = 'https://github.com/your-repo';
+	
+	// 仅个人微信自动化功能需要配置此凭据
+	// 企业微信机器人无需配置凭据
+	
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
@@ -16,26 +20,29 @@ export class WeixinWechatApi implements ICredentialType {
 			type: 'string',
 			typeOptions: { password: true },
 			default: '',
-			placeholder: '请输入从公众号获取的API密钥',
+			placeholder: '请输入你在个人微信服务中设置的 API Key',
 			required: true,
-			description: '🔑 获取步骤：①关注公众号"xxx" ②发送"API" ③复制密钥到此处 | 必须获取才能使用个人微信功能！',
+			description: '🔑 个人微信服务的认证密钥 | 配置步骤：①启动个人微信服务（首次会引导设置）②将生成的 API Key 填入此处',
 		},
 		{
 			displayName: '个人微信服务地址',
 			name: 'serviceUrl',
 			type: 'string',
-			default: 'http://host.docker.internal:3000',
-			placeholder: 'http://host.docker.internal:3000',
-			required: false,
-			description: '📱 根据N8N部署方式选择：本地安装=http://127.0.0.1:3000 | Docker=http://host.docker.internal:3000 | 云端=内网穿透地址 | 企业微信用户可忽略',
+			default: 'http://localhost:3000',
+			placeholder: 'http://localhost:3000',
+			required: true,
+			description: '📱 个人微信服务的访问地址 | 本地：http://localhost:3000 | Docker：http://host.docker.internal:3000 | 云端：http://您的IP:3000',
 		},
 	];
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials.serviceUrl || "http://host.docker.internal:3000"}}',
+			baseURL: '={{$credentials.serviceUrl || "http://localhost:3000"}}',
 			url: '/health',
 			method: 'GET',
+			headers: {
+				'x-api-key': '={{$credentials.apiKey}}'
+			}
 		},
 	};
 }

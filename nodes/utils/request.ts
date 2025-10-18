@@ -24,14 +24,15 @@ export async function requestWithAuth(
 	method: IHttpRequestMethods = 'GET',
 	body?: any,
 ): Promise<any> {
+	// ⭐ 获取凭据（调用前已在 execute 函数中验证过）
 	const credentials = await thisArg.getCredentials('weixinWechatApi');
 	
-	// 🔒 强制API Key检查 - 防止用户绕过公众号获取步骤
+	// 双重验证 API Key
 	if (!credentials?.apiKey || String(credentials.apiKey).trim() === '') {
 		throw new NodeOperationError(
 			thisArg.getNode(),
-			`❌ 个人微信功能需要API Key！👉 获取方式：关注公众号【xxx】，回复【API】`,
-			{ description: '必须获取API Key才能使用个人微信自动化功能' }
+			'❌ API Key 缺失或为空\n\n请检查凭据配置，确保 API Key 已正确填写',
+			{ description: '个人微信服务需要有效的 API Key 进行认证' }
 		);
 	}
 
@@ -103,18 +104,28 @@ export async function requestWithAuth(
 			}
 		}
 
-		// 检测API Key相关错误，提供公众号引导
+		// ⭐ 检测 API Key 相关错误
 		const isApiKeyMissing = !credentials?.apiKey || credentials.apiKey === '';
 		const isApiKeyError = error.message?.includes('api-key') || 
 							  error.message?.includes('unauthorized') || 
 							  error.message?.includes('401') ||
-							  error.status === 401;
+							  error.message?.includes('Invalid API Key') ||
+							  error.status === 401 ||
+							  error.status === 403;
 
 		if (isApiKeyMissing || isApiKeyError) {
 			throw new NodeOperationError(
 				thisArg.getNode(),
-				`Missing API Key. 👉 获取方式：关注公众号【Msh AI视频】，回复【API】。`,
-				{ description: '需要API Key才能使用个人微信功能' }
+				'❌ API Key 验证失败\n\n' +
+				'可能原因：\n' +
+				'1. API Key 不正确或已过期\n' +
+				'2. n8n 凭据中的 API Key 与服务配置不匹配\n' +
+				'3. 个人微信服务未正确配置\n\n' +
+				'解决方法：\n' +
+				'• 检查个人微信服务的 .env 文件中的 API_KEY\n' +
+				'• 确保 n8n 凭据中的 API Key 与服务配置一致\n' +
+				'• 重启个人微信服务后重试',
+				{ description: 'API Key 认证失败' }
 			);
 		}
 
