@@ -41,7 +41,7 @@ export class WeixinWechatSend implements INodeType {
 				default: 'enterprise-wechat-bot',  // 改为企业微信默认（更简单）
 				options: [
 					{
-						name: '🏢 企业微信机器人 (推荐新手)',
+						name: '🏢 企业微信机器人',
 						value: 'enterprise-wechat-bot',
 						description: '无需额外部署，配置 Webhook 即可使用，简单快捷',
 					},
@@ -653,34 +653,103 @@ export class WeixinWechatSend implements INodeType {
 							picurl: article.picurl || ''
 						}));
 
-						payload.news = {
-							articles: articles
-						};
-					}
-
-					// 直接调用企业微信webhook
-					response = await this.helpers.request({
-						method: 'POST',
-						url: webhook,
-						json: payload,
-						timeout: 30000
-					});
-
-					// 格式化返回结果保持一致性
-					const messageTypeNames: { [key: string]: string } = {
-						'text': '文本',
-						'markdown': 'Markdown',
-						'image': '图片',
-						'file': '文件',
-						'news': '图文'
+					payload.news = {
+						articles: articles
 					};
+				} else {
+					// 未知的消息类型
+					throw new NodeOperationError(
+						this.getNode(),
+						`❌ 不支持的消息类型: ${messageType}\n\n` +
+						`✅ 支持的消息类型: text, markdown, image, news, file`,
+						{ itemIndex: i }
+					);
+				}
 
-					response = {
-						success: true,
-						message: `企业微信${messageTypeNames[messageType] || messageType}消息发送成功`,
-						messageType: messageType,
-						webhook_response: response
-					};
+				// 验证 payload 是否完整
+				if (messageType === 'text' && !payload.text) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'❌ 文本消息缺少 text.content 字段',
+						{ itemIndex: i }
+					);
+				}
+				if (messageType === 'markdown' && !payload.markdown) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'❌ Markdown消息缺少 markdown.content 字段',
+						{ itemIndex: i }
+					);
+				}
+				if (messageType === 'image' && !payload.image) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'❌ 图片消息缺少 image 字段（需要 base64 和 md5）',
+						{ itemIndex: i }
+					);
+				}
+				if (messageType === 'news' && !payload.news) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'❌ 图文消息缺少 news.articles 字段',
+						{ itemIndex: i }
+					);
+				}
+				if (messageType === 'file' && !payload.file) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'❌ 文件消息缺少 file.media_id 字段',
+						{ itemIndex: i }
+					);
+				}
+
+				// 调试日志：打印实际发送的 payload
+				console.log('🔍 [Debug] 发送到企业微信的 payload:', JSON.stringify(payload, null, 2));
+
+				// 直接调用企业微信webhook
+				response = await this.helpers.httpRequest({
+					method: 'POST',
+					url: webhook,
+					body: payload,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					returnFullResponse: false,
+					timeout: 30000
+				});
+
+				// 检查企业微信响应是否成功
+				const webhookResponse = response;
+				const isSuccess = !webhookResponse.errcode || webhookResponse.errcode === 0;
+
+				// 格式化返回结果保持一致性
+				const messageTypeNames: { [key: string]: string } = {
+					'text': '文本',
+					'markdown': 'Markdown',
+					'image': '图片',
+					'file': '文件',
+					'news': '图文'
+				};
+
+				response = {
+					success: isSuccess,
+					message: isSuccess
+						? `企业微信${messageTypeNames[messageType] || messageType}消息发送成功`
+						: `企业微信消息发送失败: ${webhookResponse.errmsg || '未知错误'}`,
+					messageType: messageType,
+					webhook_response: webhookResponse
+				};
+
+				// 如果失败，抛出详细错误
+				if (!isSuccess) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`❌ 企业微信API错误 [${webhookResponse.errcode}]: ${webhookResponse.errmsg}\n\n` +
+						`📋 消息类型: ${messageType}\n` +
+						`🔗 详细信息: https://open.work.weixin.qq.com/devtool/query?e=${webhookResponse.errcode}\n\n`,
+						{ itemIndex: i }
+					);
+				}
 				} else if (service === 'personal-wechat') {
 					// 个人微信处理：必须验证 credentials
 					let credentials;
@@ -694,8 +763,7 @@ export class WeixinWechatSend implements INodeType {
 							'1. 在节点设置中找到 "Credential to connect with"（连接凭据）\n' +
 							'2. 点击选择或创建 "个人微信服务 API" 凭据\n' +
 							'3. 填入你在个人微信服务中设置的 API Key\n' +
-							'4. 保存节点配置\n\n' +
-							'💡 详细说明请查看 API_KEY_REFACTOR_GUIDE.md',
+							'4. 保存节点配置\n\n',
 							{ itemIndex: i }
 						);
 					}
